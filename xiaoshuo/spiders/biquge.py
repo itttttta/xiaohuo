@@ -53,7 +53,7 @@ class BiqugeSpider(scrapy.Spider):
                 'title':title,
                 'url':url
             })
-            print item
+            # print item
 
         #继续添加新书
         books = sel.xpath('//a')
