@@ -4,6 +4,10 @@ from scrapy.http import Request
 from scrapy import Selector
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError
+from datetime import datetime
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 from xiaoshuo.items import XiaoshuoItem
 
@@ -40,21 +44,33 @@ class BiqugeSpider(scrapy.Spider):
         #目录处理
         # item = response.meta['item']
         item = XiaoshuoItem();
-        item['title'] = sel.xpath('//h1/text()').extract_first()
+        item['title'] = sel.xpath('//meta[@property="og:title"]/@content').extract_first()
         item['book_url'] = response.url
-        item['catalogues'] = []
-        catalogues = sel.xpath('//dl/dd/a')
-        for catalogue in catalogues:
-            # item['catalogues'].append({'name':catalogue.xpath('/a')})
-            # print catalogue
-            url = base_url+catalogue.xpath('@href').extract_first()
-            title  = catalogue.xpath('text()').extract_first()
-            item['catalogues'].append({
-                'title':title,
-                'url':url
+        item['chapters'] = []
+        item['update_time'] = datetime.now()
+        item['author'] = sel.xpath('//meta[@property="og:novel:author"]/@content').extract_first()
+        item['book_name'] = sel.xpath('//meta[@property="og:novel:book_name"]/@content').extract_first()
+        item['description'] = sel.xpath('//meta[@property="og:description"]/@content').extract_first()
+        item['catalogue'] = sel.xpath('//meta[@property="og:novel:category"]/@content').extract_first()
+        item['img'] = sel.xpath('//meta[@property="og:image"]/@content').extract_first()
+        item['latest_chapter'] = {
+            'chapter_name':sel.xpath('//meta[@property="og:novel:latest_chapter_name"]/@content').extract_first(),
+            'chapter_url':sel.xpath('//meta[@property="og:novel:latest_chapter_url"]/@content').extract_first()
+        }
+        item['book_update_time'] = datetime.strptime(sel.xpath('//meta[@property="og:novel:update_time"]/@content').extract_first(), '%Y-%m-%d');
+        status = sel.xpath('//meta[@property="og:novel:status"]/@content').extract_first()
+        if(status.find('连载中')!=-1):
+            item['is_complecated'] = False
+        else:
+            item['is_complecated'] = True
+        chapters = sel.xpath('//dl/dd/a')
+        for chapter in chapters:
+            url = base_url+chapter.xpath('@href').extract_first()
+            title  = chapter.xpath('text()').extract_first()
+            item['chapters'].append({
+                'chapter_name':title,
+                'chapter_url':url
             })
-            # print item
-
         #继续添加新书
         books = sel.xpath('//a')
         for bookSel in books:
